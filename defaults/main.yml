@@ -15,7 +15,7 @@ db_password: "wordpress"
 db_root_password: "rootpassword"
 
 # AWS S3
-s3_bucket: "wordpress-backups"
+s3_bucket: "wordpress-backups-1"
 s3_region: "us-east-1"
 s3_prefix: "wordpress"
 s3_db_prefix: "{{ s3_prefix }}/database"
@@ -23,4 +23,4 @@ aws_access_key: ""
 aws_secret_key: ""
 
 # Timestamp format
-backup_timestamp: {{ ansible_date_time.date }}-{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}
+backup_timestamp: "{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
