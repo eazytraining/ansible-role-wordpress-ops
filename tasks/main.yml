@@ -1,2 +1,5 @@
 ---
 # tasks file for wordpress_ops
+- name: "Include backup db tasks"
+  include_tasks: backup_db.yml
+  tags: backup_db
