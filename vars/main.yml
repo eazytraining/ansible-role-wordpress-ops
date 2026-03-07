@@ -2,7 +2,10 @@
 # vars file for wordpress_ops
 
 backup_db_filename: "wordpress_db_{{ backup_timestamp }}.sql"
+backup_files_filename: "wordpress_files_{{ backup_timestamp }}.tar.gz"
 
 backup_db_full_path: "{{ backup_db_dir }}/{{ backup_db_filename }}"
+backup_files_full_path: "{{ backup_files_dir }}/{{ backup_files_filename }}"
 
 s3_db_key: "{{ s3_db_prefix }}/{{ backup_db_filename }}"
+s3_files_key: "{{ s3_files_prefix }}/{{ backup_files_filename }}"

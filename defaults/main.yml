@@ -3,10 +3,14 @@
 
 # Docker
 mysql_container: "db"
+wordpress_container: "wordpress"
+wordpress_root: "/var/www/html"
 
 # Backup local
 backup_base_dir: "/opt/backups/wordpress"
 backup_db_dir: "{{ backup_base_dir }}/database"
+backup_files_dir: "{{ backup_base_dir }}/files"
+backup_retention_days: 7
 
 # Database information
 db_name: "wordpress"
@@ -19,6 +23,7 @@ s3_bucket: "wordpress-backups-1"
 s3_region: "us-east-1"
 s3_prefix: "wordpress"
 s3_db_prefix: "{{ s3_prefix }}/database"
+s3_files_prefix: "{{ s3_prefix }}/files"
 aws_access_key: ""
 aws_secret_key: ""
 
