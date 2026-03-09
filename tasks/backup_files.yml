@@ -47,7 +47,7 @@
     object: "{{ s3_files_key }}"
     src: "/tmp/{{ backup_files_filename }}"
     mode: put
-    region: "{{ aws_region }}"
+    region: "{{ s3_region }}"
     access_key: "{{ aws_access_key }}"
     secret_key: "{{ aws_secret_key }}"
   tags: backup_files
