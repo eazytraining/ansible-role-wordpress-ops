@@ -45,7 +45,7 @@
   amazon.aws.s3_object:
     bucket: "{{ s3_bucket }}"
     object: "{{ s3_files_key }}"
-    src: "/tmp/{{ backup_files_filename }}"
+    src: "{{ backup_files_full_path }}"
     mode: put
     region: "{{ s3_region }}"
     access_key: "{{ aws_access_key }}"
