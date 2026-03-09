@@ -20,19 +20,24 @@
 - name: "Backup WordPress files | Create tarball of WordPress files"
   community.docker.docker_container_exec:
     container: "{{ wordpress_container }}"
-    command: "tar -czf - -C {{ wordpress_root }} . > {{ backup_files_full_path }}"
+    argv:
+      - /bin/sh
+      - -c
+      - "tar -czf {{ backup_files_full_path }} -C {{ wordpress_root }} ."
   tags: backup_files
 
 - name: "Backup WordPress files | Copy backup to host"
-  community.docker.docker_container_exec:
-    container: "{{ wordpress_container }}"
-    command: "cp {{ backup_files_full_path }} /tmp/{{ backup_files_filename }}"
+  ansible.builtin.command:
+    cmd: "docker cp {{ wordpress_container }}:{{ backup_files_full_path }} /tmp/{{ backup_files_filename }}"
   tags: backup_files
 
 - name: "Backup WordPress files | remove backup from container"
   community.docker.docker_container_exec:
     container: "{{ wordpress_container }}"
-    command: "rm {{ backup_files_full_path }}"
+    argv:
+      - /bin/sh
+      - -c
+      - "rm {{ backup_files_full_path }}"
   tags: backup_files
 
 # upload to S3
