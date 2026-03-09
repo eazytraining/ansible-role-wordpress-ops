@@ -1,0 +1,54 @@
+---
+- name: "Backup WordPress files | Create directories for backups"
+  ansible.builtin.file:
+    path: "{{ backup_files_dir }}"
+    state: directory
+    mode: '0755'
+  tags: backup_files
+
+- name: "Backup WordPress files | Before Launch backup data base (handler)"
+  ansible.builtin.debug:
+    msg: "Notification for handler to backup database before backing up files"
+  notify: backup_db
+  tags: backup_files
+
+- name: "Backup WordPress files | flush handlers to force backup_db to run before file backup"
+  ansible.builtin.meta: flush_handlers
+  tags: backup_files
+
+
+- name: "Backup WordPress files | Create tarball of WordPress files"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: "tar -czf - -C {{ wordpress_root }} . > {{ backup_files_full_path }}"
+  tags: backup_files
+
+- name: "Backup WordPress files | Copy backup to host"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: "cp {{ backup_files_full_path }} /tmp/{{ backup_files_filename }}"
+  tags: backup_files
+
+- name: "Backup WordPress files | remove backup from container"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: "rm {{ backup_files_full_path }}"
+  tags: backup_files
+
+# upload to S3
+- name: "Backup WordPress files | Upload backup to S3"
+  amazon.aws.s3_object:
+    bucket: "{{ s3_bucket }}"
+    object: "{{ s3_files_key }}"
+    src: "/tmp/{{ backup_files_filename }}"
+    mode: put
+    region: "{{ aws_region }}"
+    access_key: "{{ aws_access_key }}"
+    secret_key: "{{ aws_secret_key }}"
+  tags: backup_files
+
+- name: "Backup WordPress files | Confirm backup file exists in S3"
+  ansible.builtin.debug:
+    msg: "Backup file {{ s3_files_key }} exists in S3 bucket {{ s3_bucket }}"
+  when: backup_files_full_path is defined
+  tags: backup_files

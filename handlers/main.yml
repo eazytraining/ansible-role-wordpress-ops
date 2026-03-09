@@ -1,2 +1,4 @@
 ---
 # handlers file for wordpress_ops
+- name: backup_db
+  ansible.builtin.include_tasks: tasks/backup_db.yml

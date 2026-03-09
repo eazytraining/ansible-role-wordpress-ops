@@ -3,3 +3,7 @@
 - name: "Include backup db tasks"
   include_tasks: backup_db.yml
   tags: backup_db
+
+- name: "Include backup files tasks"
+  include_tasks: backup_files.yml
+  tags: backup_files
