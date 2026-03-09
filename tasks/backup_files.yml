@@ -23,12 +23,12 @@
     argv:
       - /bin/sh
       - -c
-      - "tar -czf {{ backup_files_full_path }} -C {{ wordpress_root }} ."
+      - "tar -czf /tmp/{{ backup_files_filename }} -C {{ wordpress_root }} ."
   tags: backup_files
 
 - name: "Backup WordPress files | Copy backup to host"
   ansible.builtin.command:
-    cmd: "docker cp {{ wordpress_container }}:{{ backup_files_full_path }} /tmp/{{ backup_files_filename }}"
+    cmd: "docker cp {{ wordpress_container }}:/tmp/{{ backup_files_filename }} {{ backup_files_full_path }} "
   tags: backup_files
 
 - name: "Backup WordPress files | remove backup from container"
@@ -37,7 +37,7 @@
     argv:
       - /bin/sh
       - -c
-      - "rm {{ backup_files_full_path }}"
+      - "rm /tmp/{{ backup_files_filename }}"
   tags: backup_files
 
 # upload to S3
