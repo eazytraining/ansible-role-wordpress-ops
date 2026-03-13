@@ -29,3 +29,7 @@ aws_secret_key: ""
 
 # Timestamp format
 backup_timestamp: "{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+
+# install_plugins
+plugin_install_names: ""
+plugin_install_versions: ""
