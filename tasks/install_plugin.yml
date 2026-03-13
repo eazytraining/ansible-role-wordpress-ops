@@ -23,9 +23,9 @@
     argv:
       - /bin/sh
       - -c
-      - "wp plugin get  {{ plugin_install_versions }} --field=version  --allow-root"
+      - "wp plugin get  {{ plugin_install_names }} --field=version  --allow-root"
   register: plugin_version_check
-  failed_when: plugin_version_check.rc != 0
+  when: plugin_version_check.rc != 0
   tags: install_plugin
 
 - name: "Install PLUGIN | actual status of plugin installation"
