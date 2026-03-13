@@ -17,13 +17,13 @@
   failed_when: plugin_check.rc == 0
   tags: install_plugin
 
-  - name: "Install PLUGIN | Verify if field version is provided"
-    community.docker.docker_container_exec:
-      container: "{{ wordpress_container }}"
-      argv:
-        - /bin/sh
-        - -c
-        - "wp plugin install  {{ plugin_install_names }} --field=version  --allow-root"
+- name: "Install PLUGIN | Verify if field version is provided"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    argv:
+      - /bin/sh
+      - -c
+      - "wp plugin install  {{ plugin_install_names }} --field=version  --allow-root"
   register: plugin_version_check
   failed_when: plugin_version_check.rc != 0
   tags: install_plugin
