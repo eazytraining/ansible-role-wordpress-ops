@@ -7,3 +7,7 @@
 - name: "Include backup files tasks"
   include_tasks: backup_files.yml
   tags: backup_files
+
+- name: "Include install plugin tasks"
+  include_tasks: install_plugin.yml
+  tags: install_plugin
