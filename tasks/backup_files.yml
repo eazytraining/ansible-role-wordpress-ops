@@ -9,6 +9,7 @@
 - name: "Backup WordPress files | Before Launch backup data base (handler)"
   ansible.builtin.debug:
     msg: "Notification for handler to backup database before backing up files"
+  changed_when: true
   notify: backup_db
   tags: backup_files
 
