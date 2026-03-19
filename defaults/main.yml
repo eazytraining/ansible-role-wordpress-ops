@@ -29,3 +29,7 @@ aws_secret_key: ""
 
 # Timestamp format
 backup_timestamp: "{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+
+# install plugins
+plugin_install_name: "akismet"
+plugin_install_version: "latest"

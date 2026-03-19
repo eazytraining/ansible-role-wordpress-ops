@@ -1,0 +1,82 @@
+---
+- name: "Install Plugin | Vérifier que plugin_install_name est défini"
+  ansible.builtin.assert:
+    that:
+      - plugin_install_name | length > 0
+    fail_msg: >
+      La variable 'plugin_install_name' est obligatoire.
+      Passez-la via : -e "plugin_install_name=woocommerce"
+      Avec version  : -e "plugin_install_name=woocommerce plugin_install_version=8.5.2"
+  tags: install_plugin
+
+# ── Vérifier si le plugin est déjà installé ──────────────────
+
+- name: "Install Plugin | Vérifier si '{{ plugin_install_name }}' est déjà installé"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: "wp plugin is-installed {{ plugin_install_name }} --allow-root"
+  register: _already_installed
+  failed_when: _already_installed.rc not in [0, 1]
+  tags: install_plugin
+
+- name: "Install Plugin | Lire la version déjà installée (si présente)"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: "wp plugin get {{ plugin_install_name }} --field=version --allow-root"
+  register: _installed_version
+  when: _already_installed.rc == 0
+  tags: install_plugin
+
+- name: "Install Plugin | Afficher le statut actuel"
+  ansible.builtin.debug:
+    msg: >
+      Plugin '{{ plugin_install_name }}' :
+      {% if _already_installed.rc == 0 %}
+      déjà installé en version {{ _installed_version.stdout | trim }}
+      {% else %}
+      non installé
+      {% endif %}
+  tags: install_plugin
+
+# ── Décider si l'installation/mise à jour est nécessaire ─────
+
+- name: "Install Plugin | Définir si l'action est nécessaire"
+  ansible.builtin.set_fact:
+    _plugin_needs_install: >-
+      {{
+        _already_installed.rc != 0
+        or (
+          plugin_install_version | length > 0
+          and _installed_version.stdout | trim != plugin_install_version
+        )
+      }}
+  tags: install_plugin
+
+- name: "Install Plugin | Aucune action nécessaire"
+  ansible.builtin.debug:
+    msg: >
+      Plugin '{{ plugin_install_name }}' v{{ plugin_install_version | default('latest') }}
+      déjà installé. Rien à faire.
+  when: not _plugin_needs_install | bool
+  tags: install_plugin
+
+# ── Installation ─────────────────────────────────────────────
+
+- name: "Install Plugin | Installer '{{ plugin_install_name }}'{{ ' v' + plugin_install_version if plugin_install_version else ' (dernière version)' }}"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: >
+      wp plugin install {{ plugin_install_name }}
+      {% if plugin_install_version | length > 0 %}--version={{ plugin_install_version }}{% endif %}
+      --allow-root
+  register: _install_result
+  when: _plugin_needs_install | bool
+  tags: install_plugin
+
+- name: "Install Plugin | Afficher le résultat de l'installation"
+  ansible.builtin.debug:
+    msg: "{{ _install_result.stdout_lines }}"
+  when:
+    - _plugin_needs_install | bool
+    - _install_result.stdout_lines is defined
+  tags: install_plugin
