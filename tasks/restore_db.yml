@@ -3,10 +3,24 @@
   ansible.builtin.assert:
     that:
       - restore_db_file | length > 0
-      - restore_db_file is file
     fail_msg: >
       La variable 'restore_db_file' doit pointer vers un fichier .sql existant.
       Utilisez : -e "restore_db_file=/opt/backups/wordpress/database/db_2024-01-01_120000.sql"
+  tags: restore_db
+
+- name: "Restore DB | Vérifier que le fichier SQL existe sur le serveur"
+  ansible.builtin.stat:
+    path: "{{ restore_db_file }}"
+  register: _restore_db_stat
+  tags: restore_db
+
+- name: "Restore DB | Assertion fichier SQL présent sur le serveur"
+  ansible.builtin.assert:
+    that:
+      - _restore_db_stat.stat.exists
+      - _restore_db_stat.stat.isreg
+    fail_msg: >
+      Le fichier '{{ restore_db_file }}' est introuvable sur le serveur.
   tags: restore_db
 
 - name: "Restore DB | Copier le dump dans le container MySQL"
