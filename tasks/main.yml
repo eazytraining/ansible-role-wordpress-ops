@@ -15,3 +15,7 @@
 - name: "Include manage plugin tasks"
   include_tasks: manage_plugin.yml
   tags: manage_plugin
+
+- name: "Include update plugins tasks"
+  include_tasks: update_plugins.yml
+  tags: update_plugins

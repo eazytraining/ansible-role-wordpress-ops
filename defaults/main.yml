@@ -37,3 +37,6 @@ plugin_install_version: "latest"
 #manage plugin 
 plugin_name: "akismet"
 plugin_action: "activate"  # options: activate, deactivate, delete
+
+#update plugins
+plugin_update_name: []
