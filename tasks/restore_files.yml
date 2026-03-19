@@ -56,15 +56,11 @@
     state: stopped
   tags: restore_files
 
-- name: "Restore Files | Extraire l'archive"
-  ansible.builtin.command:
-    cmd: >
-      docker run --rm
-      --volumes-from {{ wordpress_container }}
-      -v {{ restore_files_archive }}:/tmp/restore_files.tar.gz:ro
-      alpine
-      tar -xzf /tmp/restore_files.tar.gz -C /var/www/html
-  changed_when: true
+- name: "Restore Files | Extraire l'archive directement sur le host"
+  ansible.builtin.unarchive:
+    src: "{{ restore_files_archive }}"
+    dest: "~/wordpress_data"
+    remote_src: yes
   tags: restore_files
 
 - name: "Restore Files | Redémarrer le container WordPress"
