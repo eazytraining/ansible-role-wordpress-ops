@@ -72,11 +72,11 @@
     name: "{{ wordpress_container }}"
     state: started
   tags: restore_files
-  
+
 - name: "Restore Files | Attendre que le container soit prêt"
   ansible.builtin.wait_for:
     host: localhost
-    port: "{{ wordpress_port }}"
+    port: "8004"
     timeout: 60
     delay: 5
   tags: restore_files
