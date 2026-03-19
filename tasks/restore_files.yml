@@ -63,7 +63,7 @@
       --volumes-from {{ wordpress_container }}
       -v {{ restore_files_archive }}:/tmp/restore_files.tar.gz:ro
       alpine
-      tar -xzf /tmp/restore_files.tar.gz -C /
+      tar -xzf /tmp/restore_files.tar.gz -C /var/www/html
   changed_when: true
   tags: restore_files
 
