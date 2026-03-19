@@ -50,12 +50,6 @@
 
 # ── Restauration des fichiers WordPress ──────────────────────
 
-- name: "Restore Files | Copier l'archive dans le container WordPress"
-  ansible.builtin.command:
-    cmd: "docker cp {{ restore_files_archive }} {{ wordpress_container }}:/tmp/restore_files.tar.gz"
-  changed_when: true
-  tags: restore_files
-
 - name: "Restore Files | Arrêter le container WordPress"
   community.docker.docker_container:
     name: "{{ wordpress_container }}"
@@ -67,6 +61,7 @@
     cmd: >
       docker run --rm
       --volumes-from {{ wordpress_container }}
+      -v {{ restore_files_archive }}:/tmp/restore_files.tar.gz:ro
       alpine
       tar -xzf /tmp/restore_files.tar.gz -C /
   changed_when: true
@@ -76,12 +71,6 @@
   community.docker.docker_container:
     name: "{{ wordpress_container }}"
     state: started
-  tags: restore_files
-
-- name: "Restore Files | Supprimer l'archive temporaire"
-  community.docker.docker_container_exec:
-    container: "{{ wordpress_container }}"
-    command: "rm -f /tmp/restore_files.tar.gz"
   tags: restore_files
 
 - name: "Restore Files | Health check WordPress"
