@@ -72,10 +72,18 @@
     name: "{{ wordpress_container }}"
     state: started
   tags: restore_files
+  
+- name: "Restore Files | Attendre que le container soit prêt"
+  ansible.builtin.wait_for:
+    host: localhost
+    port: "{{ wordpress_port }}"
+    timeout: 60
+    delay: 5
+  tags: restore_files
 
 - name: "Restore Files | Health check WordPress"
   ansible.builtin.uri:
-    url: "http://localhost"
+    url: "http://localhost:8004"
     status_code: [200, 301, 302]
     timeout: 30
   register: _wp_health
