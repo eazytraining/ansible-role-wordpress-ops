@@ -46,3 +46,4 @@ plugin_uninstall_name: "akismet"
 
 # restore db
 restore_db_file: ""
+restore_files_archive: ""
