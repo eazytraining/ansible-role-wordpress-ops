@@ -33,3 +33,7 @@ backup_timestamp: "{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}{{ a
 # install plugins
 plugin_install_name: "akismet"
 plugin_install_version: "latest"
+
+#manage plugin 
+plugin_name: "akismet"
+plugin_action: "activate"  # options: activate, deactivate, delete
