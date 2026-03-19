@@ -45,4 +45,4 @@ plugins_to_update: []
 plugin_uninstall_name: "akismet"
 
 # restore db
-restore_db_file: ""
+restore_db_file: "/opt/backups/wordpress/database/db_2024-01-01_120000.sql"
