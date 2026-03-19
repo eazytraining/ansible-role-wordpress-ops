@@ -39,4 +39,4 @@ plugin_name: "akismet"
 plugin_action: "activate"  # options: activate, deactivate, delete
 
 #update plugins
-plugin_update_name: []
+plugins_to_update: []
