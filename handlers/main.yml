@@ -4,6 +4,6 @@
   ansible.builtin.include_tasks: tasks/backup_db.yml
   tags: backup_db
 
-- name: backup_files
-  ansible.builtin.include_tasks: tasks/backup_files.yml
-  tags: backup_files
+- name: restore database before files
+  ansible.builtin.include_tasks: tasks/restore_db.yml
+  tags: restore_db
