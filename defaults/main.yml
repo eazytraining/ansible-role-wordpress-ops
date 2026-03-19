@@ -43,3 +43,6 @@ plugins_to_update: []
 
 #uninstall plugins
 plugin_uninstall_name: "akismet"
+
+# restore db
+restore_db_file: ""

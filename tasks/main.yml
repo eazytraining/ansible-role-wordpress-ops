@@ -23,3 +23,7 @@
 - name: "Include uninstall plugin tasks"
   include_tasks: uninstall_plugin.yml
   tags: uninstall_plugin
+
+- name: "Include restore db tasks"
+  include_tasks: restore_db.yml
+  tags: restore_db
