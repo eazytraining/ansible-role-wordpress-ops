@@ -40,3 +40,6 @@ plugin_action: "activate"  # options: activate, deactivate, delete
 
 #update plugins
 plugins_to_update: []
+
+#uninstall plugins
+plugin_uninstall_name: "akismet"

@@ -19,3 +19,7 @@
 - name: "Include update plugins tasks"
   include_tasks: update_plugins.yml
   tags: update_plugins
+
+- name: "Include uninstall plugin tasks"
+  include_tasks: uninstall_plugin.yml
+  tags: uninstall_plugin
