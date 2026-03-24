@@ -31,3 +31,7 @@
 - name: "Include restore files tasks"
   include_tasks: restore_files.yml
   tags: restore_files
+
+- name: "Include cleanup tasks"
+  include_tasks: cleanup.yml
+  tags: cleanup

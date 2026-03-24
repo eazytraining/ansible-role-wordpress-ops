@@ -1,0 +1,54 @@
+---
+
+- name: "Cleanup | Rechercher les anciens dumps DB (> {{ backup_retention_days }} jours)"
+  ansible.builtin.find:
+    paths: "{{ backup_db_dir }}"
+    patterns: "db_*.sql"
+    age: "{{ backup_retention_days }}d"
+    recurse: false
+  register: _old_db
+  tags: cleanup
+
+- name: "Cleanup | Rechercher les anciennes archives fichiers (> {{ backup_retention_days }} jours)"
+  ansible.builtin.find:
+    paths: "{{ backup_files_dir }}"
+    patterns: "files_*.tar.gz"
+    age: "{{ backup_retention_days }}d"
+    recurse: false
+  register: _old_files
+  tags: cleanup
+
+- name: "Cleanup | Afficher ce qui sera supprimé"
+  ansible.builtin.debug:
+    msg: >
+      {{ _old_db.files | length }} dump(s) DB
+      et {{ _old_files.files | length }} archive(s) fichiers
+      seront supprimés (rétention : {{ backup_retention_days }} jours).
+  tags: cleanup
+
+- name: "Cleanup | Supprimer les anciens dumps DB"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ _old_db.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  tags: cleanup
+
+- name: "Cleanup | Supprimer les anciennes archives fichiers"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ _old_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  tags: cleanup
+
+- name: "Cleanup | Résumé"
+  ansible.builtin.debug:
+    msg:
+      - "=== Nettoyage terminé ==="
+      - "DB supprimés    : {{ _old_db.files | length }}"
+      - "Files supprimés : {{ _old_files.files | length }}"
+      - "Rétention       : {{ backup_retention_days }} jours"
+  tags: cleanup
