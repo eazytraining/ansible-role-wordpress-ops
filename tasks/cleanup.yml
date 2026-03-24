@@ -3,7 +3,7 @@
 - name: "Cleanup | Rechercher les anciens dumps DB (> {{ backup_retention_days }} jours)"
   ansible.builtin.find:
     paths: "{{ backup_db_dir }}"
-    patterns: "db_*.sql"
+    patterns: "wordpress_db_*.sql"
     age: "{{ backup_retention_days }}d"
     recurse: false
   register: _old_db
@@ -12,7 +12,7 @@
 - name: "Cleanup | Rechercher les anciennes archives fichiers (> {{ backup_retention_days }} jours)"
   ansible.builtin.find:
     paths: "{{ backup_files_dir }}"
-    patterns: "files_*.tar.gz"
+    patterns: "wordpress_files_*.tar.gz"
     age: "{{ backup_retention_days }}d"
     recurse: false
   register: _old_files
