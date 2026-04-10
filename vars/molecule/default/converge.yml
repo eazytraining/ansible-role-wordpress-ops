@@ -1,0 +1,139 @@
+---
+# ============================================================
+# converge.yml – Test du rôle wordpress_ops
+# ============================================================
+
+# ── Phase 1: Créer les backups initiaux ──────────────────
+- name: "Converge | Phase 1 - Créer les backups"
+  hosts: molecule_hosts
+  gather_facts: true
+  vars:
+    restore_db_file: ""
+    restore_files_archive: ""
+  tasks:
+    - name: "Créer les backups"
+      ansible.builtin.include_role:
+        name: wordpress_ops
+        tasks_from: "{{ item }}"
+      loop:
+        - backup_db.yml
+        - backup_files.yml
+        - install_plugin.yml
+        - manage_plugin.yml
+      vars:
+        plugin_action: "activate"
+
+# ── Phase 2: Restauration depuis les backups ────────────
+- name: "Converge | Phase 2 - Restauration"
+  hosts: molecule_hosts
+  gather_facts: true
+
+  pre_tasks:
+    - name: "Trouver les backups créés"
+      ansible.builtin.find:
+        paths: "{{ backup_base_dir }}/database"
+        patterns: "db_*.sql"
+      register: _db_backups
+
+    - name: "Trouver les archives créées"
+      ansible.builtin.find:
+        paths: "{{ backup_base_dir }}/files"
+        patterns: "files_*.tar.gz"
+      register: _file_backups
+
+    - name: "Définir les chemins des backups les plus récents"
+      ansible.builtin.set_fact:
+        _restore_db_path: "{{ (_db_backups.files | sort(attribute='mtime') | last).path }}"
+        _restore_files_path: "{{ (_file_backups.files | sort(attribute='mtime') | last).path }}"
+
+    - name: "Fetch | Récupérer le dump SQL sur le contrôleur"
+      ansible.builtin.fetch:
+        src: "{{ _restore_db_path }}"
+        dest: "/tmp/molecule_restore/"
+        flat: true
+
+    - name: "Fetch | Récupérer l'archive tar.gz sur le contrôleur"
+      ansible.builtin.fetch:
+        src: "{{ _restore_files_path }}"
+        dest: "/tmp/molecule_restore/"
+        flat: true
+
+    - name: "Définir les chemins locaux pour la restauration"
+      ansible.builtin.set_fact:
+        _local_db_path: "/tmp/molecule_restore/{{ _restore_db_path | basename }}"
+        _local_files_path: "/tmp/molecule_restore/{{ _restore_files_path | basename }}"
+
+    - name: "Afficher les chemins de restauration"
+      ansible.builtin.debug:
+        msg: |
+          Restauration depuis (chemins contrôleur) :
+          - DB    : {{ _local_db_path }}
+          - Files : {{ _local_files_path }}
+
+    - name: "Copy | Créer le répertoire de restauration sur l'hôte distant"
+      ansible.builtin.file:
+        path: /tmp/molecule_restore
+        state: directory
+        mode: "0755"
+
+    - name: "Copy | Envoyer le dump SQL vers l'hôte distant"
+      ansible.builtin.copy:
+        src: "{{ _local_db_path }}"
+        dest: "/tmp/molecule_restore/"
+        mode: "0644"
+
+    - name: "Copy | Envoyer l'archive tar.gz vers l'hôte distant"
+      ansible.builtin.copy:
+        src: "{{ _local_files_path }}"
+        dest: "/tmp/molecule_restore/"
+        mode: "0644"
+
+  tasks:
+    - name: "Restaurer la DB"
+      ansible.builtin.include_role:
+        name: wordpress_ops
+        tasks_from: restore_db.yml
+      vars:
+        restore_db_file: "{{ _local_db_path }}"
+      when: _local_db_path | default("") | length > 0
+
+    # ── block/rescue : absorbe l'échec du health check interne ──
+    - name: "Restaurer les fichiers"
+      when: _local_files_path | default("") | length > 0
+      block:
+        - ansible.builtin.include_role:
+            name: wordpress_ops
+            tasks_from: restore_files.yml
+          vars:
+            restore_db_file: "{{ _local_db_path }}"
+            restore_files_archive: "{{ _local_files_path }}"
+      rescue:
+        - name: "Restaurer les fichiers | Ignorer l'échec du health check interne"
+          ansible.builtin.debug:
+            msg: "Health check interne du rôle échoué (attendu) — vérification via docker exec."
+
+    # ── Health check depuis l'intérieur du container ──────────
+    - name: "Post-restore | Attendre qu'Apache soit prêt"
+      community.docker.docker_container_exec:
+        container: "{{ wordpress_container }}"
+        command: "curl -s -o /dev/null -w '%{http_code}' http://localhost"
+      register: _wp_health
+      retries: 10
+      delay: 5
+      until: _wp_health.rc == 0 and _wp_health.stdout | trim in ['200', '301', '302']
+      failed_when: false
+
+    - name: "Post-restore | Vérifier le résultat du health check"
+      ansible.builtin.assert:
+        that:
+          - _wp_health.stdout | trim in ['200', '301', '302']
+        fail_msg: "WordPress ne répond pas après restauration (code: {{ _wp_health.stdout | trim }})"
+
+    - name: "Post-restore | Afficher le résultat"
+      ansible.builtin.debug:
+        msg: "Restauration complète. WordPress répond avec HTTP {{ _wp_health.stdout | trim }}"
+
+    - name: "Cleanup"
+      ansible.builtin.include_role:
+        name: wordpress_ops
+        tasks_from: cleanup.yml

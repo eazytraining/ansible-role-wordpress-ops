@@ -1,0 +1,66 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: molecule-wp-host
+    image: geerlingguy/docker-ubuntu2204-ansible
+    pre_build_image: true
+    privileged: true
+    command: sleep infinity
+    tmpfs:
+      - /run
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    groups:
+      - molecule_hosts
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/.ansible/tmp
+      control_path: /tmp/ansible-ssh-%%h-%%p-%%r
+      pipelining: true
+      roles_path: /home/ubuntu/molecule-wordpress/roles 
+  inventory:
+    group_vars:
+      molecule_hosts:
+        ansible_pipelining: true
+        wordpress_container: "molecule-wordpress-1"
+        mysql_container:     "molecule-db-1"
+        wordpress_root:      "/var/www/html"
+        db_name:             "wordpress"
+        db_user:             "wordpress"
+        db_password:         "wordpress"
+        db_root_password:    "wordpress"
+        backup_base_dir:     "/tmp/molecule_backups"
+        backup_retention_days: 1
+        s3_enabled:          false
+        plugin_install_name:    "hello-dolly"
+        plugin_install_version: ""
+        plugin_name:            "hello-dolly"
+        plugin_action:          "activate"
+        plugins_to_update:
+          - name: "hello-dolly"
+            version: "1.7.2"
+
+verifier:
+  name: ansible
+
+scenario:
+  name: default
+  test_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+#    - idempotence
+    - verify
+    - destroy

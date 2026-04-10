@@ -1,0 +1,130 @@
+---
+# ============================================================
+# prepare.yml – Démarrage de la stack WordPress pour les tests
+# ============================================================
+
+- name: "Prepare | Démarrer la stack WordPress de test"
+  hosts: molecule_hosts
+  gather_facts: false
+
+  tasks:
+
+    # ── Installer les dépendances Python ────────────────────
+
+    - name: "Prepare | Installer les dépendances Python requises"
+      ansible.builtin.raw: apt-get update && apt-get install -y python3-requests python3-docker 2>&1 | tail -5
+      ignore_errors: true
+
+    # ── Créer le réseau Docker de test ──────────────────────
+
+    - name: "Prepare | Créer le réseau Docker molecule-net"
+      community.docker.docker_network:
+        name: molecule-net
+        state: present
+
+    # ── Démarrer MySQL ───────────────────────────────────────
+
+    - name: "Prepare | Démarrer le container MySQL"
+      community.docker.docker_container:
+        name: "{{ mysql_container }}"
+        image: mysql:5.7
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: molecule-net
+        env:
+          MYSQL_ROOT_PASSWORD: "{{ db_root_password }}"
+          MYSQL_DATABASE: "{{ db_name }}"
+          MYSQL_USER: "{{ db_user }}"
+          MYSQL_PASSWORD: "{{ db_password }}"
+        volumes:
+          - molecule-db-data:/var/lib/mysql
+
+    # ── Attendre que MySQL soit prêt ─────────────────────────
+
+    - name: "Prepare | Attendre que MySQL accepte les connexions"
+      community.docker.docker_container_exec:
+        container: "{{ mysql_container }}"
+        command: >
+          mysqladmin ping
+          -u root
+          -p{{ db_root_password }}
+          --silent
+      register: _mysql_ping
+      retries: 15
+      delay: 5
+      until: _mysql_ping.rc == 0
+
+    # ── Démarrer WordPress ───────────────────────────────────
+
+    - name: "Prepare | Démarrer le container WordPress"
+      community.docker.docker_container:
+        name: "{{ wordpress_container }}"
+        image: conetix/wordpress-with-wp-cli
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: molecule-net
+        ports:
+          - "8080:80"
+        env:
+          WORDPRESS_DB_HOST: "{{ mysql_container }}:3306"
+          WORDPRESS_DB_USER: "{{ db_user }}"
+          WORDPRESS_DB_PASSWORD: "{{ db_password }}"
+          WORDPRESS_DB_NAME: "{{ db_name }}"
+        volumes:
+          - molecule-wp-data:/var/www/html
+          - molecule-wp-tmp:/tmp
+
+    # ── Attendre que WordPress soit prêt ─────────────────────
+
+    - name: "Prepare | Attendre que WordPress démarre (30s)"
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: "Prepare | Vérifier que WP-CLI est accessible"
+      community.docker.docker_container_exec:
+        container: "{{ wordpress_container }}"
+        command: "wp --info --allow-root"
+      register: _wpcli_check
+      retries: 5
+      delay: 5
+      until: _wpcli_check.rc == 0
+
+    # ── Installer WordPress (core) ───────────────────────────
+
+    - name: "Prepare | Installer WordPress core"
+      community.docker.docker_container_exec:
+        container: "{{ wordpress_container }}"
+        command: >
+          wp core install
+          --url=http://localhost:8080
+          --title="Molecule Test"
+          --admin_user=admin
+          --admin_password=admin123
+          --admin_email=test@molecule.local
+          --skip-email
+          --allow-root
+      register: _wp_install
+      failed_when:
+        - _wp_install.rc != 0
+        - "'already installed' not in _wp_install.stdout"
+
+    # ── Créer les répertoires de backup ──────────────────────
+
+    - name: "Prepare | Créer les répertoires de backup de test"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ backup_base_dir }}/database"
+        - "{{ backup_base_dir }}/files"
+
+    - name: "Prepare | Stack prête"
+      ansible.builtin.debug:
+        msg:
+          - "Container MySQL    : {{ mysql_container }}"
+          - "Container WordPress: {{ wordpress_container }}"
+          - "WP-CLI             : {{ _wpcli_check.stdout_lines | first }}"
+          - "Stack prête pour les tests Molecule."
