@@ -1,0 +1,94 @@
+---
+- name: "Restore Files | Vérifier que les variables sont définies"
+  ansible.builtin.assert:
+    that:
+      - restore_files_archive | length > 0
+      - restore_db_file | length > 0
+    fail_msg: >
+      Les deux variables 'restore_files_archive' et 'restore_db_file'
+      doivent pointer vers des fichiers existants.
+  tags: restore_files
+
+- name: "Restore Files | Vérifier l'existence de restore_files_archive sur le serveur"
+  ansible.builtin.stat:
+    path: "{{ restore_files_archive }}"
+  register: _restore_files_stat
+  tags: restore_files
+
+- name: "Restore Files | Assertion restore_files_archive présent"
+  ansible.builtin.assert:
+    that:
+      - _restore_files_stat.stat.exists
+      - _restore_files_stat.stat.isreg
+    fail_msg: "Le fichier '{{ restore_files_archive }}' est introuvable sur le serveur."
+  tags: restore_files
+
+- name: "Restore Files | Vérifier l'existence de restore_db_file sur le serveur"
+  ansible.builtin.stat:
+    path: "{{ restore_db_file }}"
+  register: _restore_db_stat
+  tags: restore_files
+
+- name: "Restore Files | Assertion restore_db_file présent"
+  ansible.builtin.assert:
+    that:
+      - _restore_db_stat.stat.exists
+      - _restore_db_stat.stat.isreg
+    fail_msg: "Le fichier '{{ restore_db_file }}' est introuvable sur le serveur."
+  tags: restore_files
+
+- name: "Restore Files | Déclencher la restauration DB d'abord (handler)"
+  ansible.builtin.debug:
+    msg: "Notification handler : restore database before files"
+  notify: "restore database before files"
+  changed_when: true
+  tags: restore_files
+
+- name: "Restore Files | Forcer l'exécution du handler DB maintenant"
+  ansible.builtin.meta: flush_handlers
+  tags: restore_files
+
+# ── Restauration des fichiers WordPress ──────────────────────
+
+- name: "Restore Files | Arrêter le container WordPress"
+  community.docker.docker_container:
+    name: "{{ wordpress_container }}"
+    state: stopped
+  tags: restore_files
+
+- name: "Restore Files | Extraire l'archive directement sur le host"
+  ansible.builtin.unarchive:
+    src: "{{ restore_files_archive }}"
+    dest: "~/wordpress_data"
+    remote_src: yes
+  tags: restore_files
+
+- name: "Restore Files | Redémarrer le container WordPress"
+  community.docker.docker_container:
+    name: "{{ wordpress_container }}"
+    state: started
+  tags: restore_files
+
+- name: "Restore Files | Attendre que le container soit prêt"
+  ansible.builtin.wait_for:
+    host: localhost
+    port: "8004"
+    timeout: 60
+    delay: 5
+  tags: restore_files
+
+- name: "Restore Files | Health check WordPress"
+  ansible.builtin.uri:
+    url: "http://localhost:8004"
+    status_code: [200, 301, 302]
+    timeout: 30
+  register: _wp_health
+  retries: 5
+  delay: 5
+  until: _wp_health.status in [200, 301, 302]
+  tags: restore_files
+
+- name: "Restore Files | Afficher le résultat"
+  ansible.builtin.debug:
+    msg: "Restauration complète. WordPress répond avec HTTP {{ _wp_health.status }}"
+  tags: restore_files

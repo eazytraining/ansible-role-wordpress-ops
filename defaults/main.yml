@@ -1,0 +1,49 @@
+---
+# defaults file for wordpress_ops
+
+# Docker
+mysql_container: "db"
+wordpress_container: "wordpress"
+wordpress_root: "/var/www/html"
+
+# Backup local
+backup_base_dir: "/opt/backups/wordpress"
+backup_db_dir: "{{ backup_base_dir }}/database"
+backup_files_dir: "{{ backup_base_dir }}/files"
+backup_retention_days: 7
+
+# Database information
+db_name: "wordpress"
+db_user: "wordpress"
+db_password: "wordpress"
+db_root_password: "rootpassword"
+
+# AWS S3
+s3_bucket: "wordpress-backups-1"
+s3_region: "us-east-1"
+s3_prefix: "wordpress"
+s3_db_prefix: "{{ s3_prefix }}/database"
+s3_files_prefix: "{{ s3_prefix }}/files"
+aws_access_key: ""
+aws_secret_key: ""
+
+# Timestamp format
+backup_timestamp: "{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+
+# install plugins
+plugin_install_name: "akismet"
+plugin_install_version: "latest"
+
+#manage plugin 
+plugin_name: "akismet"
+plugin_action: "activate"  # options: activate, deactivate, delete
+
+#update plugins
+plugins_to_update: []
+
+#uninstall plugins
+plugin_uninstall_name: "akismet"
+
+# restore db
+restore_db_file: ""
+restore_files_archive: ""

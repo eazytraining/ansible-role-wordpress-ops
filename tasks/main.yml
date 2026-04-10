@@ -1,0 +1,37 @@
+---
+# tasks file for wordpress_ops
+- name: "Include backup db tasks"
+  include_tasks: backup_db.yml
+  tags: backup_db
+
+- name: "Include backup files tasks"
+  include_tasks: backup_files.yml
+  tags: backup_files
+
+- name: "Include install plugin tasks"
+  include_tasks: install_plugin.yml
+  tags: install_plugin
+
+- name: "Include manage plugin tasks"
+  include_tasks: manage_plugin.yml
+  tags: manage_plugin
+
+- name: "Include update plugins tasks"
+  include_tasks: update_plugins.yml
+  tags: update_plugins
+
+- name: "Include uninstall plugin tasks"
+  include_tasks: uninstall_plugin.yml
+  tags: uninstall_plugin
+
+- name: "Include restore db tasks"
+  include_tasks: restore_db.yml
+  tags: restore_db
+
+- name: "Include restore files tasks"
+  include_tasks: restore_files.yml
+  tags: restore_files
+
+- name: "Include cleanup tasks"
+  include_tasks: cleanup.yml
+  tags: cleanup

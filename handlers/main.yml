@@ -1,0 +1,9 @@
+---
+# handlers file for wordpress_ops
+- name: backup_db
+  ansible.builtin.include_tasks: tasks/backup_db.yml
+  tags: backup_db
+
+- name: restore database before files
+  ansible.builtin.include_tasks: tasks/restore_db.yml
+  tags: restore_db

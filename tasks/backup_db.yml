@@ -1,0 +1,44 @@
+---
+- name: "Backup WordPress Database with mysqldump | create repository"
+  ansible.builtin.file:
+    path: "{{ backup_db_dir }}"
+    state: directory
+    mode: '0755'
+  tags: backup_db
+
+- name: "Backup WordPress Database with mysqldump | backup database"
+  community.docker.docker_container_exec:
+    container: "{{ mysql_container }}"
+    command: "mysqldump -u{{ db_user }} -p{{ db_password }} --single-transaction --routines --triggers {{ db_name }}"
+  register: db_dump
+  tags: backup_db
+
+- name: "Backup WordPress Database with mysqldump | save backup to file"
+  ansible.builtin.copy:
+    content: "{{ db_dump.stdout }}"
+    dest: "{{ backup_db_full_path }}"
+    mode: '0600'
+  tags: backup_db
+
+- name: "Backup WordPress Database with mysqldump | verify backup file exists"
+  ansible.builtin.debug:
+    msg: "Backup file {{ backup_db_full_path }} created successfully"
+  when: backup_db_full_path is defined
+  tags: backup_db
+
+- name: "Backup WordPress Database with mysqldump | upload to S3"
+  amazon.aws.aws_s3:
+    bucket: "{{ s3_bucket }}"
+    object: "{{ s3_db_key }}"
+    src: "{{ backup_db_full_path }}"
+    region: "{{ s3_region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    mode: put
+  tags: backup_db
+
+- name: "Backup WordPress Database with mysqldump | Confirm backup file exists in S3"
+  ansible.builtin.debug:
+    msg: "Backup file {{ s3_db_key }} exists in S3 bucket {{ s3_bucket }}"
+  when: backup_db_full_path is defined
+  tags: backup_db

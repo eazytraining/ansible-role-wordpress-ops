@@ -1,0 +1,47 @@
+---
+- name: "Manage Plugin | Vérifier les variables requises"
+  ansible.builtin.assert:
+    that:
+      - plugin_name | length > 0
+      - plugin_action in ['activate', 'deactivate']
+    fail_msg: >
+      Passez plugin_name et plugin_action (activate|deactivate).
+      Exemple : -e "plugin_name=woocommerce plugin_action=activate"
+  tags: manage_plugin
+
+- name: "Manage Plugin | Vérifier que le plugin est installé"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: "wp plugin is-installed {{ plugin_name }} --allow-root"
+  register: _plugin_check
+  failed_when: _plugin_check.rc not in [0, 1]
+  tags: manage_plugin
+
+- name: "Manage Plugin | Échouer si le plugin n'est pas installé"
+  ansible.builtin.fail:
+    msg: "Le plugin '{{ plugin_name }}' n'est pas installé. Installez-le d'abord."
+  when: _plugin_check.rc != 0
+  tags: manage_plugin
+
+- name: "Manage Plugin | {{ plugin_action | capitalize }} '{{ plugin_name }}'"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: "wp plugin {{ plugin_action }} {{ plugin_name }} --allow-root"
+  register: _action_result
+  tags: manage_plugin
+
+- name: "Manage Plugin | Vérifier le statut final"
+  community.docker.docker_container_exec:
+    container: "{{ wordpress_container }}"
+    command: >
+      wp plugin get {{ plugin_name }}
+      --fields=name,status,version
+      --format=table
+      --allow-root
+  register: _plugin_status
+  tags: manage_plugin
+
+- name: "Manage Plugin | Afficher le résultat"
+  ansible.builtin.debug:
+    msg: "{{ _plugin_status.stdout_lines }}"
+  tags: manage_plugin
