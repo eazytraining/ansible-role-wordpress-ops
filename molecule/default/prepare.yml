@@ -15,6 +15,17 @@
       ansible.builtin.raw: apt-get update && apt-get install -y python3-requests python3-docker 2>&1 | tail -5
       ignore_errors: true
 
+    - name: "Prepare | Installer les dépendances AWS Python"
+      ansible.builtin.pip:
+        name:
+          - boto3
+          - botocore
+        executable: pip3
+
+    - name: "Prepare | Vérifier boto3 et botocore"
+      ansible.builtin.command: python3 -c "import boto3, botocore; print('ok')"
+      changed_when: false
+
     # ── Créer le réseau Docker de test ──────────────────────
 
     - name: "Prepare | Créer le réseau Docker molecule-net"
