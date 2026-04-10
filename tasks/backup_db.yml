@@ -35,10 +35,12 @@
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
     mode: put
+  when: s3_enabled | bool
   tags: backup_db
 
 - name: "Backup WordPress Database with mysqldump | Confirm backup file exists in S3"
   ansible.builtin.debug:
     msg: "Backup file {{ s3_db_key }} exists in S3 bucket {{ s3_bucket }}"
   when: backup_db_full_path is defined
+  when: s3_enabled | bool
   tags: backup_db
