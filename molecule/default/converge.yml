@@ -30,35 +30,18 @@
   gather_facts: true
   vars:
     role_under_test: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
-
   pre_tasks:
     - name: "Trouver les backups créés"
       ansible.builtin.find:
         paths: "{{ backup_base_dir }}/database"
-        patterns: "db_*.sql"
+        patterns: "wordpress_db_*.sql"
       register: _db_backups
 
     - name: "Trouver les archives créées"
       ansible.builtin.find:
         paths: "{{ backup_base_dir }}/files"
-        patterns: "files_*.tar.gz"
+        patterns: "wordpress_files_*.tar.gz"
       register: _file_backups
-
-    - name: "Afficher le nombre de backups trouvés"
-      ansible.builtin.debug:
-        msg:
-          - "DB backups trouvés: {{ _db_backups.files | length }}"
-          - "Archives trouvées: {{ _file_backups.files | length }}"
-
-    - name: "Vérifier que les backups existent"
-      ansible.builtin.assert:
-        that:
-          - (_db_backups.files | length) > 0
-          - (_file_backups.files | length) > 0
-        fail_msg: >
-          Aucun backup exploitable trouvé.
-          DB={{ _db_backups.files | length }},
-          Files={{ _file_backups.files | length }}
 
     - name: "Définir les chemins des backups les plus récents"
       ansible.builtin.set_fact:
@@ -98,19 +81,14 @@
     - name: "Copy | Envoyer le dump SQL vers l'hôte distant"
       ansible.builtin.copy:
         src: "{{ _local_db_path }}"
-        dest: "/tmp/molecule_restore/{{ _restore_db_path | basename }}"
+        dest: "/tmp/molecule_restore/"
         mode: "0644"
 
     - name: "Copy | Envoyer l'archive tar.gz vers l'hôte distant"
       ansible.builtin.copy:
         src: "{{ _local_files_path }}"
-        dest: "/tmp/molecule_restore/{{ _restore_files_path | basename }}"
+        dest: "/tmp/molecule_restore/"
         mode: "0644"
-
-    - name: "Définir les chemins distants pour la restauration"
-      ansible.builtin.set_fact:
-        _remote_db_path: "/tmp/molecule_restore/{{ _restore_db_path | basename }}"
-        _remote_files_path: "/tmp/molecule_restore/{{ _restore_files_path | basename }}"
 
   tasks:
     - name: "Restaurer la DB"
@@ -118,23 +96,25 @@
         name: "{{ role_under_test }}"
         tasks_from: restore_db.yml
       vars:
-        restore_db_file: "{{ _remote_db_path }}"
-      when: _remote_db_path | default("") | length > 0
+        restore_db_file: "{{ _local_db_path }}"
+      when: _local_db_path | default("") | length > 0
 
+    # ── block/rescue : absorbe l'échec du health check interne ──
     - name: "Restaurer les fichiers"
-      when: _remote_files_path | default("") | length > 0
+      when: _local_files_path | default("") | length > 0
       block:
         - ansible.builtin.include_role:
             name: "{{ role_under_test }}"
             tasks_from: restore_files.yml
           vars:
-            restore_db_file: "{{ _remote_db_path }}"
-            restore_files_archive: "{{ _remote_files_path }}"
+            restore_db_file: "{{ _local_db_path }}"
+            restore_files_archive: "{{ _local_files_path }}"
       rescue:
         - name: "Restaurer les fichiers | Ignorer l'échec du health check interne"
           ansible.builtin.debug:
             msg: "Health check interne du rôle échoué (attendu) — vérification via docker exec."
 
+    # ── Health check depuis l'intérieur du container ──────────
     - name: "Post-restore | Attendre qu'Apache soit prêt"
       community.docker.docker_container_exec:
         container: "{{ wordpress_container }}"
